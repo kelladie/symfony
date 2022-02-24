@@ -39,7 +39,7 @@ class SessionController extends AbstractController
             $session->set('todos', $todos);
             $this->addFlash('info', "la liste de votre todos vient d'être initialisée");
         }
-        return $this->render('session/test.html.twig');
+        return $this->render('session/todo.html.twig');
     }
     #[Route('/add/{name}/{content}', name: 'add', defaults: ['name' => 'lundi', 'content' => 'contentlundi'])]
     public function addTodo(Request $request, $name, $content): RedirectResponse
@@ -65,10 +65,10 @@ class SessionController extends AbstractController
         $session = $request->getSession();
         if ($session->has('todos')) {
             $todos = $session->get('todos');
-            if (!isset($todos['name'])) {
+            if (!isset($todos[$name])) {
                 $this->addFlash('error', "le todo id $name n'existe pas dans la liste");
             } else {
-                $todos['name'] = $content;
+                $todos[$name] = $content;
                 $this->addFlash('success', "le todo id $name a bien été modifié avec succes");
                 $session->set('todos', $todos);
             }
@@ -83,10 +83,10 @@ class SessionController extends AbstractController
         $session = $request->getSession();
         if ($session->has('todos')) {
             $todos = $session->get('todos');
-            if (!isset($todos['name'])) {
+            if (!isset($todos[$name])) {
                 $this->addFlash('error', "le todo id $name n'existe pas dans la liste");
             } else {
-                unset($todos['name']);
+                unset($todos[$name]);
                 $this->addFlash('success', "le todo id $name a bien été modifié avec succes");
                 $session->set('todos', $todos);
             }
