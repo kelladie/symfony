@@ -3,20 +3,24 @@
 namespace App\Entity;
 
 use App\Repository\HobbyRepository;
+use App\Traits\TimeStampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: HobbyRepository::class)]
+#[ORM\HasLifecycleCallbacks()]
 class Hobby
 {
+    use TimeStampTrait;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
     private $id;
 
     #[ORM\Column(type: 'string', length: 255)]
-    private $desigantion;
+    private $designation;
 
     #[ORM\ManyToMany(targetEntity: Personne::class, mappedBy: 'hobbies')]
     private $personnes;
@@ -31,14 +35,14 @@ class Hobby
         return $this->id;
     }
 
-    public function getDesigantion(): ?string
+    public function getDesignation(): ?string
     {
-        return $this->desigantion;
+        return $this->designation;
     }
 
-    public function setDesigantion(string $desigantion): self
+    public function setDesignation(string $designation): self
     {
-        $this->desigantion = $desigantion;
+        $this->designation = $designation;
 
         return $this;
     }
