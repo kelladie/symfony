@@ -3,11 +3,17 @@
 namespace App\Controller;
 
 use App\Entity\Personne;
+use App\Form\PersonneType;
+use App\Service\MailerService;
+use App\Service\UploadService;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/personne', name: 'personne_')]
 class PersonneController extends AbstractController
@@ -49,20 +55,47 @@ class PersonneController extends AbstractController
             'user' => $personne,
         ]);
     }
-    #[Route('/add', name: 'add')]
-    public function addPersonne(ManagerRegistry $doctrine): Response
-    {
-        $entityManager = $doctrine->getManager();
-        $personne = new Personne();
-        $personne->setFirstName('Rabenja');
-        $personne->setName('MiarinaSoa');
-        $personne->setAge(20);
-        $entityManager->persist($personne);
-
-        $entityManager->flush();
-        return $this->render('personne/detail.html.twig', [
-            'user' => $personne,
-        ]);
+    #[Route('/edit/{id<\d+>?0}', name: 'edit')]
+    public function addPersonne(
+        Personne $personne = null,
+        ManagerRegistry $doctrine,
+        Request $request,
+        UploadService $uploadService,
+        MailerService $mail
+    ): Response {
+        $new = false;
+        if (!$personne) {
+            $new = true;
+            $personne = new Personne();
+        }
+        $form = $this->createForm(PersonneType::class, $personne);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $manager = $doctrine->getManager();
+            /* UploadedFile photo */
+            $photo = $form->get('photo')->getData();
+            if ($photo) {
+                $directory = $this->getParameter('personne_directory');
+                //call service upload image
+                $file = $uploadService->uploadFileImage($photo, $directory);
+                $personne->setImage($file);
+            }
+            $manager->persist($personne);
+            $manager->flush();
+            if ($new) {
+                $message = " a bin été ajouté avec success";
+            } else {
+                $message = " a bin été modifié avec success";
+            }
+            $mailMessage = $personne->getFirstName() . ' ' . $personne->getName() . ' ' . $message;
+            $mail->sendEmail(content: $mailMessage);
+            $this->addFlash('success', $personne->getName() . $message);
+            return $this->redirectToRoute('personne_list');
+        } else {
+            return $this->render('personne/add.html.twig', [
+                'formPersonne' => $form->createView(),
+            ]);
+        }
     }
     #[Route('/delete/{id<\d+>}', name: 'delete')]
     public function delete(Personne $personne = null, ManagerRegistry $doctrine): RedirectResponse

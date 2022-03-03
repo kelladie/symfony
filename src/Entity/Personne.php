@@ -8,6 +8,7 @@ use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PersonneRepository::class)]
 #[ORM\HasLifecycleCallbacks()]
@@ -21,6 +22,10 @@ class Personne
     private $id;
 
     #[ORM\Column(type: 'string', length: 50)]
+    #[Assert\Sequentially([
+        new Assert\NotBlank(),
+        new Assert\Length(min: 4, minMessage: "Veuillez avoir 4 caractéres minimum"),
+    ])]
     private $firstName;
 
     #[ORM\Column(type: 'string', length: 50)]
@@ -37,6 +42,9 @@ class Personne
 
     #[ORM\ManyToOne(targetEntity: Job::class, inversedBy: 'personnes')]
     private $job;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private $image;
 
     public function __construct()
     {
@@ -128,6 +136,18 @@ class Personne
     public function setJob(?Job $job): self
     {
         $this->job = $job;
+
+        return $this;
+    }
+
+    public function getImage(): ?string
+    {
+        return $this->image;
+    }
+
+    public function setImage(string $image): self
+    {
+        $this->image = $image;
 
         return $this;
     }
