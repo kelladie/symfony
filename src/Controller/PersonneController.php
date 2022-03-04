@@ -43,7 +43,7 @@ class PersonneController extends AbstractController
         $personnes = $repo->findPersonnesByAgeInterval($ageMin, $ageMax);
         return $this->render('personne/index.html.twig', ['personnes' => $personnes]);
     }
-    #[Route('/{id<\d+>}', name: 'detail')]
+    #[Route('/detail/{id<\d+>}', name: 'detail')]
     public function detail(Personne $personne = null): Response
     {
         /*$repo = $doctrine->getRepository(Personne::class);
@@ -53,7 +53,7 @@ class PersonneController extends AbstractController
             return $this->redirectToRoute('personne_list');
         }
         return $this->render('personne/detail.html.twig', [
-            'user' => $personne,
+            'personne' => $personne,
         ]);
     }
     #[Route('/pdf/{id<\d+>}', name: 'pdf_detail')]
@@ -66,7 +66,7 @@ class PersonneController extends AbstractController
             return $this->redirectToRoute('personne_list');
         }
         $html = $this->render('personne/detail.html.twig', [
-            'user' => $personne,
+            'personne' => $personne,
         ]);
         $pdf->showPdfFile($html);
     }
