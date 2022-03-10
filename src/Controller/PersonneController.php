@@ -8,6 +8,7 @@ use App\Service\MailerService;
 use App\Service\PdfService;
 use App\Service\UploadService;
 use Doctrine\Persistence\ManagerRegistry;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -19,7 +20,10 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 #[Route('/personne', name: 'personne_')]
 class PersonneController extends AbstractController
 {
-    #[Route('/{page<\d+>?1}/{nbr<\d+>?5}', name: 'list')]
+    #[
+        Route('/{page<\d+>?1}/{nbr<\d+>?5}', name: 'list'),
+        IsGranted('ROLE_USER')
+    ]
     public function allPersonne(ManagerRegistry $doctrine, $page, $nbr): Response
     {
         $repo = $doctrine->getRepository(Personne::class);
@@ -79,6 +83,7 @@ class PersonneController extends AbstractController
         UploadService $uploadService,
         MailerService $mail
     ): Response {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
         $new = false;
         if (!$personne) {
             $new = true;
@@ -96,13 +101,15 @@ class PersonneController extends AbstractController
                 $file = $uploadService->uploadFileImage($photo, $directory);
                 $personne->setImage($file);
             }
-            $manager->persist($personne);
-            $manager->flush();
             if ($new) {
                 $message = " a bin été ajouté avec success";
+                $personne->setCreatedBy($this->getUser());
             } else {
                 $message = " a bin été modifié avec success";
             }
+            $manager->persist($personne);
+            $manager->flush();
+
             $mailMessage = $personne->getFirstName() . ' ' . $personne->getName() . ' ' . $message;
             $mail->sendEmail(content: $mailMessage);
             $this->addFlash('success', $personne->getName() . $message);
