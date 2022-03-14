@@ -5,46 +5,30 @@
 
 {% block body %}
 	<div class="row">
-
 		{% for personne in personnes %}
-
 			<div class="col-3">
 				<div class="card" style="width: 18rem;">
 					<div class="card-body">
 						<h5 class="card-title">{{ personne.name }}</h5>
-
-
 						<h6 class="card-subtitle mb-2 text-muted">{{ personne.firstName }}
-
 							{{ personne.name }}</h6>
-
-
 						<p class="card-text">Age:{{ personne.age }}<a href="#" class="card-link"></a>
 						</p>
-
 					</p>
-
 					<a href="{{path('personne_detail', {id:personne.id})}}" class="card-link">
-
 						<i class="fa-solid fa-circle-info"></i>
 					</a>
-
-					<a href="{{path('personne_delete', {id:personne.id})}}" class="card-link">
-
-						<i class="fa-solid fa-user-xmark"></i>
-					</a>
-
-					<a href="{{path('personne_edit', {id:personne.id})}}" class="card-link">
-
-						<i class="fa-solid fa-user-pen"></i>
-					</a>
-
-
+					{% if is_granted('ROLE_ADMIN')%}
+						<a href="{{path('personne_delete', {id:personne.id})}}" class="card-link">
+							<i class="fa-solid fa-user-xmark"></i>
+						</a>
+						<a href="{{path('personne_edit', {id:personne.id})}}" class="card-link">
+							<i class="fa-solid fa-user-pen"></i>
+						</a>
+					{% endif %}
 				</div>
 			</div>
 		</div>
-
-
 	{% endfor %}
 </div>
 {% if isPaginated is defined %}
@@ -68,9 +52,7 @@
 						<a class="page-link" href="{{path('personne_list',{page:page+1,nbr:nbr}) }}">Next</a>
 					</li>
 				{% endif %}
-
 			</ul>
 		</nav>
-
 	</div>
 {% endif %}{% endblock %}

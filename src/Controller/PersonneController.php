@@ -3,23 +3,32 @@
 namespace App\Controller;
 
 use App\Entity\Personne;
+use App\Event\AddPersonneEvent;
+use App\Event\ListAllPersonnesEvent;
 use App\Form\PersonneType;
-use App\Service\MailerService;
 use App\Service\PdfService;
+use App\Service\MailerService;
 use App\Service\UploadService;
 use Doctrine\Persistence\ManagerRegistry;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\File\Exception\FileException;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\String\Slugger\SluggerInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 
-#[Route('/personne', name: 'personne_')]
+#[
+    Route('/personne', name: 'personne_'),
+    IsGranted('ROLE_USER')
+]
 class PersonneController extends AbstractController
 {
+    public function __construct(private EventDispatcherInterface $dispatcher)
+    {
+    }
     #[
         Route('/{page<\d+>?1}/{nbr<\d+>?5}', name: 'list'),
         IsGranted('ROLE_USER')
@@ -31,6 +40,8 @@ class PersonneController extends AbstractController
         $nbPage = ceil($nbPersonne / $nbr);
         //pagination
         $personnes = $repo->findBy([], [], $nbr, ($page - 1) * $nbr);
+        $listAllPersonneEvent = new ListAllPersonnesEvent($nbPersonne);
+        $this->dispatcher->dispatch($listAllPersonneEvent, ListAllPersonnesEvent::LIST_ALL_PERSONNES_EVENT);
         return $this->render('personne/index.html.twig', [
             'personnes' => $personnes,
             'isPaginated' => true,
@@ -102,16 +113,20 @@ class PersonneController extends AbstractController
                 $personne->setImage($file);
             }
             if ($new) {
-                $message = " a bin été ajouté avec success";
+                $message = " a bien été ajouté avec success";
                 $personne->setCreatedBy($this->getUser());
             } else {
-                $message = " a bin été modifié avec success";
+                $message = " a bien été modifié avec success";
             }
             $manager->persist($personne);
             $manager->flush();
-
-            $mailMessage = $personne->getFirstName() . ' ' . $personne->getName() . ' ' . $message;
-            $mail->sendEmail(content: $mailMessage);
+            //EventListener
+            if ($new) {
+                //create event
+                $addPersonneEvent = new AddPersonneEvent($personne);
+                //dispatch event
+                $this->dispatcher->dispatch($addPersonneEvent, AddPersonneEvent::ADD_PERSONNE_EVENT);
+            }
             $this->addFlash('success', $personne->getName() . $message);
             return $this->redirectToRoute('personne_list');
         } else {
@@ -120,7 +135,10 @@ class PersonneController extends AbstractController
             ]);
         }
     }
-    #[Route('/delete/{id<\d+>}', name: 'delete')]
+    #[
+        Route('/delete/{id<\d+>}', name: 'delete'),
+        IsGranted('ROLE_ADMIN')
+    ]
     public function delete(Personne $personne = null, ManagerRegistry $doctrine): RedirectResponse
     {
         if ($personne) {
